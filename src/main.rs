@@ -27,6 +27,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+/// Plays the embedded scream sound for a second.
 fn play_scream() -> Result<()> {
     let file = Assets::get("scream.flac").context("Failed to get scream file")?;
     let cursor = std::io::Cursor::new(file.data);
@@ -42,6 +43,7 @@ fn play_scream() -> Result<()> {
     Ok(())
 }
 
+/// It just checks whether any lines start with `#define` and plays a scream lmao.
 fn check_file(file: &std::path::PathBuf) -> Result<()> {
     let file_name = file.to_string_lossy();
     let reader = std::io::BufReader::new(std::fs::File::open(file)?);
