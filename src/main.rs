@@ -1,3 +1,5 @@
+use std::{io::BufRead, usize};
+
 use anyhow::{Context, Result};
 use rodio::{Decoder, Source};
 use rust_embed::RustEmbed;
@@ -9,7 +11,7 @@ struct Assets;
 fn main() -> Result<()> {
     let file_names = std::env::args().skip(1);
     if file_names.len() == 0 {
-        eprint!("This program checks for C++ Core Guidelines ES.30, ES.31, and ES.32 violations and enforces them according to the its suggestions. Make sure to turn your volume up!\n");
+        eprintln!("This program checks for C++ Core Guidelines ES.30, ES.31, and ES.32 violations and enforces them according to the its suggestions. Make sure to turn your volume up!\n");
         eprintln!(
             "Usage: {} <C++ source file> ...",
             std::env::args()
@@ -47,27 +49,25 @@ fn play_scream() -> Result<()> {
 fn check_file(file: &std::path::PathBuf) -> Result<()> {
     let file_name = file.to_string_lossy();
     let reader = std::io::BufReader::new(std::fs::File::open(file)?);
-    let mut violation_found = false;
 
-    for (line_number, line) in std::io::BufRead::lines(reader).enumerate() {
-        let line = line.context("Failed to read line")?;
-        if line.starts_with("#define ") {
-            println!("{}: line {}: {}", file_name, line_number + 1, line);
-            violation_found = true;
-        }
-    }
+    let violations: Vec<(usize, String)> = reader
+        .lines()
+        .enumerate()
+        .filter_map(|(line_number, line)| {
+            line.ok()
+                .filter(|line| line.starts_with("#define "))
+                .map(|line| (line_number, line))
+        })
+        .collect();
 
-    if violation_found {
-        println!(
-            "{} violated the C++ Core Guidelines ES.30, ES.31, or ES.32!",
-            file_name
-        );
+    if violations.len() > 0 {
+        println!("Violation found in {}!", file_name);
+        violations.iter().for_each(|(line_number, line)| {
+            println!("\tLine {}: {}", line_number + 1, line);
+        });
         play_scream().context("Failed to play scream")
     } else {
-        println!(
-            "{} didn't violate C++ Core Guidelines ES.30, ES.31, nor ES.32.",
-            file_name
-        );
+        println!("{} is OK.", file_name);
         Ok(())
     }
 }
